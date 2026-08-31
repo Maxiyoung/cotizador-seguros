@@ -1,0 +1,25 @@
+# Dependencias — se reinstalan con pnpm install, no hace falta versionarlas
+node_modules/
+node_modules/
+dist/
+.env
+# Builds compilados — se generan con pnpm build, no son código fuente
+dist/
+build/
+
+# Variables de entorno — acá van tus credenciales (Provincia, etc.), NUNCA a git
+.env
+.env.local
+.env.*.local
+
+# Configuración del editor (opcional versionarla, pero así evitás pisarte con configs personales)
+.vscode/
+
+# Archivos de sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*

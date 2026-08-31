@@ -1,0 +1,308 @@
+================================================================================
+INFORMACIÓN DEL FRONTEND - COTIZADOR DE SEGUROS
+================================================================================
+
+PROJECT OVERVIEW
+================================================================================
+Nombre: Frontend - Cotizador de Seguros
+Descripción: Aplicación frontend con React que permite a usuarios cotizar seguros de auto
+Framework Principal: React 19.2.8 + TypeScript
+Build Tool: Vite 8.2.2
+Styling: Tailwind CSS 4.3.3 con integración Vite
+Package Manager: pnpm 11.24.0
+
+================================================================================
+STACK TECNOLÓGICO
+================================================================================
+
+RUNTIME & BUILD:
+  - Node.js / npm packages
+  - Vite 8.2.2 (bundler y dev server)
+  - @vitejs/plugin-react 6.1.0 (soporte React con Fast Refresh)
+
+FRAMEWORK & LIBRARIES:
+  - React 19.2.8 (framework UI)
+  - React DOM 19.2.8 (rendering a DOM)
+  - TypeScript ~6.0.2 (tipado estático)
+
+STYLING:
+  - Tailwind CSS 4.3.3 (utility-first CSS)
+  - @tailwindcss/vite 4.3.3 (plugin oficial para Vite)
+  - App.css (estilos globales)
+  - index.css (reset y variables)
+
+CODE QUALITY:
+  - ESLint 10.9.0 (linting)
+  - typescript-eslint 8.67.0 (soporte TypeScript en ESLint)
+  - @eslint/js 10.0.1 (reglas recomendadas de ESLint)
+  - eslint-plugin-react-hooks 7.1.1 (reglas de React Hooks)
+  - eslint-plugin-react-refresh 0.5.4 (soporte Fast Refresh)
+
+TIPOS:
+  - @types/react 19.2.18 (tipos de React)
+  - @types/react-dom 19.2.4 (tipos de React DOM)
+  - @types/node 24.13.3 (tipos de Node.js)
+
+OTROS:
+  - globals 17.11.0 (variables globales del navegador)
+
+================================================================================
+ESTRUCTURA DE CARPETAS
+================================================================================
+
+frontend/
+├── public/                    # Archivos estáticos
+├── src/
+│   ├── App.tsx               # Componente principal
+│   ├── App.css               # Estilos del componente
+│   ├── index.css             # Estilos globales
+│   ├── main.tsx              # Punto de entrada
+│   └── assets/               # Imágenes y otros recursos
+├── index.html                # HTML template
+├── vite.config.ts            # Configuración de Vite
+├── tsconfig.json             # Configuración base TypeScript
+├── tsconfig.app.json         # Configuración TypeScript para app
+├── tsconfig.node.json        # Configuración TypeScript para build tools
+├── eslint.config.js          # Configuración de ESLint
+├── package.json              # Dependencias y scripts
+└── pnpm-lock.yaml            # Lock file de pnpm
+
+================================================================================
+SCRIPTS DISPONIBLES
+================================================================================
+
+dev       : vite                               # Inicia servidor de desarrollo
+build     : tsc -b && vite build               # Compila TypeScript + bundle
+lint      : eslint .                           # Ejecuta linter
+preview   : vite preview                       # Vista previa del build
+
+================================================================================
+CONFIGURACIÓN VITE
+================================================================================
+
+Archivo: vite.config.ts
+
+Plugins activos:
+  1. @vitejs/plugin-react - Soporte de React con HMR (Hot Module Replacement)
+  2. @tailwindcss/vite - Compilación de Tailwind CSS integrada
+
+Características:
+  - Fast Refresh habilitado (actualización instantánea sin perder estado)
+  - Tailwind CSS compilado directamente sin PostCSS adicional
+  - Dev server en http://localhost:5173 (por defecto)
+
+================================================================================
+CONFIGURACIÓN TYPESCRIPT
+================================================================================
+
+Archivo: tsconfig.json (referencias)
+Archivos reales: tsconfig.app.json y tsconfig.node.json
+
+Opciones probables en tsconfig.app.json:
+  - target: ES2020 o superior
+  - useDefineForClassFields: true
+  - lib: ES2020, DOM, DOM.Iterable
+  - module: ESNext
+  - skipLibCheck: true (omite verificación de tipos en .d.ts)
+  - esModuleInterop: true (compatibilidad con módulos CommonJS)
+  - allowSyntheticDefaultImports: true (permite import default de módulos sin ellos)
+
+================================================================================
+CONFIGURACIÓN ESLINT
+================================================================================
+
+Archivo: eslint.config.js (Formato ESLint Flat)
+
+Archivos analizados: **/*.{ts,tsx}
+Archivos ignorados: dist/
+
+Configuraciones extends:
+  1. @eslint/js - Reglas recomendadas de ESLint
+  2. typescript-eslint - Reglas TypeScript
+  3. react-hooks/flat - Reglas de React Hooks (exhaustive-deps, etc)
+  4. react-refresh/vite - Reglas de Fast Refresh
+
+Globals del navegador habilitados:
+  - window, document, localStorage, etc.
+
+================================================================================
+ARQUITECTURA DEL FRONTEND
+================================================================================
+
+COMPONENTE PRINCIPAL: App.tsx
+
+Responsabilidades:
+  - Gestionar estado del formulario (contacto, vehículo, perfil)
+  - Manejar cambios en inputs
+  - Comunicarse con API backend (/cotizar)
+  - Mostrar resultados de cotizaciones
+  - Mostrar errores
+
+Estado (React Hooks):
+  - form: FormState (datos del formulario)
+  - quotes: Cotizacion[] (resultados de cotizaciones)
+  - loading: boolean (estado de carga)
+  - error: string (mensajes de error)
+
+Funciones principales:
+  - handleContactChange() - Actualizar datos de contacto
+  - handleVehicleChange() - Actualizar datos de vehículo
+  - handleSubmit() - Enviar formulario y obtener cotizaciones
+  - formatCurrency() - Formatear moneda a ARS
+
+Flujo de datos:
+  1. Usuario completa formulario
+  2. Click en "Cotizar seguro"
+  3. handleSubmit() valida y envía POST a http://localhost:3000/cotizar
+  4. Espera respuesta con array de Cotizacion[]
+  5. Muestra resultados o error
+
+================================================================================
+TIPOS DEFINIDOS EN FRONTEND
+================================================================================
+
+type TipoPersona = 'F' | 'J'                    # Física o Jurídica
+type Genero = 'M' | 'F'                         # Masculino o Femenino
+type UsoVehiculo = 'particular' | 'comercial'   # Uso del vehículo
+
+type CotizacionPlan = {
+  codigoPlan: string
+  nombre: string
+  precio: number
+  vigencia: string
+}
+
+type Cotizacion = {
+  aseguradora: string
+  numeroCotizacion: string
+  fechaCotizacion: string
+  planes: CotizacionPlan[]
+}
+
+type ContactoForm = {
+  dni: string
+  nombre: string
+  email: string
+  telefono: string
+}
+
+type VehiculoForm = {
+  marca: string
+  modelo: string
+  anio: string              # NOTA: string en formulario
+  esOkm: boolean
+  uso: UsoVehiculo
+  valorVehiculo: string     # NOTA: string en formulario
+  codigoPostal: string
+  provincia: string
+}
+
+type FormState = {
+  contacto: ContactoForm
+  vehiculo: VehiculoForm
+  tipoPersona: TipoPersona
+  genero: Genero
+}
+
+================================================================================
+DISEÑO UI/UX
+================================================================================
+
+Framework: Tailwind CSS (utility-first)
+
+Paleta de colores:
+  - Primario: #1F6F54 (verde)
+  - Secundario: #195a46 (verde oscuro)
+  - Fondo: #F6F7F5 (gris claro)
+  - Texto: #10233D (azul oscuro)
+  - Bordes: #DADFE3 (gris)
+  - Acentos: #A6742A (marrón dorado)
+  - Éxito: #1F6F54, #DDF1E8
+
+Layout:
+  - Responsive grid: 1.2fr / 0.8fr en lg+
+  - 2 columnas: Formulario | Resultados
+  - Mobile: 1 columna
+
+Componentes reutilizables:
+  - Input fields con focus states
+  - Select dropdowns
+  - Checkboxes
+  - Botón de submit
+  - Cards de resultados
+  - Mensajes de error
+
+================================================================================
+COMUNICACIÓN CON BACKEND
+================================================================================
+
+Endpoint: POST http://localhost:3000/cotizar
+
+Request:
+  - Headers: Content-Type: application/json
+  - Body: FormState completo
+  - Payload:
+    {
+      contacto: { dni, nombre, email, telefono },
+      vehiculo: { marca, modelo, anio: number, esOkm, uso, valorVehiculo: number, codigoPostal, provincia },
+      tipoPersona: 'F' | 'J',
+      genero: 'M' | 'F'
+    }
+
+Response esperada:
+  - Status 200: Cotizacion[]
+  - Status error: { error: string }
+
+Manejo de errores:
+  - Try-catch en handleSubmit()
+  - Muestra error en UI si falla
+  - Loading state durante la request
+
+================================================================================
+PROBLEMAS IDENTIFICADOS
+================================================================================
+
+1. ❌ SIN VALIDACIÓN DE DATOS
+   - No valida formato de email, DNI, teléfono
+   - No valida rangos de años, valores de vehículo
+   - Solo relying en HTML required attribute
+
+2. ❌ ENDPOINT HARDCODEADO
+   - URL de API está hardcodeada en el código
+   - No hay separación de ambientes
+
+3. ❌ TIPOS INCONSISTENTES
+   - Usa strings en formulario, luego convierte a números
+   - Mejor tipado sería más seguro
+
+4. ❌ SIN CANCELACIÓN DE REQUESTS
+   - Si navega away durante request, continúa corriendo
+   - Potencial memory leak
+
+5. ❌ SIN ERROR TYPING
+   - Error es string, mejor sería union type discriminado
+
+================================================================================
+PRÓXIMAS MEJORAS RECOMENDADAS
+================================================================================
+
+ALTA PRIORIDAD:
+  ✓ Agregar validación con Zod
+  ✓ Mover URL de API a .env
+  ✓ Implementar AbortController para requests
+
+MEDIA PRIORIDAD:
+  - Separar componentes (Form, Results, etc)
+  - Custom hooks (useForm, useApi)
+  - Error boundaries
+  - Loading skeleton en resultados
+
+BAJA PRIORIDAD:
+  - Animations con Framer Motion
+  - Soporte para múltiples idiomas (i18n)
+  - Dark mode
+  - PWA capabilities
+
+================================================================================
+Última actualización: 2026-08-29
+================================================================================

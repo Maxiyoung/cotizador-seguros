@@ -1,0 +1,496 @@
+================================================================================
+INFORMACIÓN DEL BACKEND - COTIZADOR DE SEGUROS
+================================================================================
+
+PROJECT OVERVIEW
+================================================================================
+Nombre: Backend - Cotizador de Seguros
+Descripción: API REST con Express.js que maneja la lógica de cotizaciones de seguros
+Framework Principal: Express.js 5.2.1
+Lenguaje: TypeScript 7.0.2
+Runtime: Node.js
+Package Manager: pnpm 11.24.0
+Dev Tool: tsx 4.23.12 (para ejecutar TS directamente)
+
+================================================================================
+STACK TECNOLÓGICO
+================================================================================
+
+RUNTIME & FRAMEWORK:
+  - Node.js (servidor)
+  - Express.js 5.2.1 (framework web REST)
+  - cors 2.8.6 (middleware CORS)
+
+LENGUAJE & TIPOS:
+  - TypeScript 7.0.2 (tipado estático)
+  - @types/node 26.4.0 (tipos Node.js)
+  - @types/express 5.0.6 (tipos Express)
+  - @types/cors 2.8.19 (tipos CORS)
+
+HERRAMIENTAS DE DESARROLLO:
+  - tsx 4.23.12 (ejecutar TypeScript sin compilar)
+  - typescript 7.0.2 (compilador)
+
+WORKSPACE:
+  - pnpm 11.24.0 (package manager)
+  - pnpm-workspace.yaml (configuración monorepo)
+
+================================================================================
+ESTRUCTURA DE CARPETAS
+================================================================================
+
+backend/
+├── src/
+│   ├── app.ts                     # Configuración de Express
+│   ├── server.ts                  # Punto de entrada
+│   ├── routes/
+│   │   └── cotizar.routes.ts      # Endpoint POST /cotizar
+│   ├── services/
+│   │   └── cotizacion.service.ts  # Lógica de negocio
+│   ├── adapters/
+│   │   ├── types.ts               # Interfaz QuoteAdapter
+│   │   └── mock/
+│   │       └── mock.adapter.ts    # Adapter mock para pruebas
+│   └── types/
+│       ├── cotizacion.ts          # Tipos de respuesta
+│       └── datosAuto.ts           # Tipos de request
+├── package.json                   # Dependencias y scripts
+├── pnpm-lock.yaml                 # Lock file
+├── pnpm-workspace.yaml            # Config monorepo
+└── tsconfig.json                  # Configuración TypeScript
+
+================================================================================
+SCRIPTS DISPONIBLES
+================================================================================
+
+dev       : tsx watch src/server.ts          # Inicia servidor con hot reload
+test      : echo "no tests" && exit 1        # Placeholder para tests
+
+================================================================================
+CONFIGURACIÓN TYPESCRIPT
+================================================================================
+
+Archivo: tsconfig.json
+
+Opciones:
+  - target: ES2022 (módulos modernos)
+  - module: commonjs (formato de módulos)
+  - rootDir: ./src (carpeta de fuentes)
+  - outDir: ./dist (carpeta de salida compilada)
+  - strict: true (modo estricto activado)
+  - types: ["node"] (tipos de Node.js)
+  - skipLibCheck: true (omite verificación de tipos en .d.ts)
+
+================================================================================
+ARQUITECTURA DEL BACKEND
+================================================================================
+
+PATRÓN: Arquitectura en capas con Adapter Pattern
+
+    ┌─────────────┐
+    │   Routes    │  ← Maneja HTTP requests/responses
+    └──────┬──────┘
+           │
+    ┌──────▼──────────┐
+    │   Services      │  ← Lógica de negocio
+    └──────┬──────────┘
+           │
+    ┌──────▼──────────┐
+    │   Adapters      │  ← Integración con aseguradoras
+    └─────────────────┘
+
+FLUJO DE REQUEST:
+1. Cliente envía POST /cotizar con datos
+2. Route cotizar.routes.ts recibe request
+3. Valida datos (actualmente sin validación)
+4. Llama a obtenerCotizaciones() en service
+5. Service ejecuta adapters en paralelo
+6. Cada adapter devuelve cotización
+7. Response se devuelve al cliente
+
+================================================================================
+ARCHIVOS Y RESPONSABILIDADES
+================================================================================
+
+app.ts - CONFIGURACIÓN EXPRESS
+────────────────────────────────
+Responsabilidades:
+  - Crear instancia de Express
+  - Configurar middlewares (CORS, JSON parser)
+  - Registrar rutas
+
+Código:
+  import express from 'express'
+  import cors from 'cors'
+  import { cotizarRouter } from './routes/cotizar.routes'
+
+  export const app = express()
+  app.use(cors())  // ⚠️ CORS abierto sin restricciones
+  app.use(express.json())
+  app.use(cotizarRouter)
+
+Configuración actual:
+  - CORS: Acepta cualquier origen (*)
+  - Body parser: Acepta JSON
+  - Rutas: Carga router de cotizaciones
+
+================================================================================
+
+server.ts - PUNTO DE ENTRADA
+──────────────────────────────
+Responsabilidades:
+  - Importar la app configurada
+  - Definir puerto
+  - Iniciar servidor
+
+Código:
+  import { app } from './app'
+  const PORT = process.env.PORT || 3000
+  app.listen(PORT, () => {
+    console.log(`Servidor corriendo en http://localhost:${PORT}`)
+  })
+
+Configuración:
+  - Puerto: 3000 (por defecto)
+  - Log simple en consola
+
+================================================================================
+
+routes/cotizar.routes.ts - DEFINICIÓN DE ENDPOINTS
+─────────────────────────────────────────────────
+Responsabilidades:
+  - Definir rutas disponibles
+  - Validar datos de request
+  - Llamar a services
+  - Retornar respuestas
+
+Endpoint:
+  POST /cotizar
+
+Request:
+  {
+    contacto: {
+      dni: string
+      nombre: string
+      email: string
+      telefono: string
+    }
+    vehiculo: {
+      marca: string
+      modelo: string
+      anio: number
+      esOkm: boolean
+      uso: 'particular' | 'comercial'
+      valorVehiculo: number
+      codigoPostal: string
+      provincia: string
+    }
+    tipoPersona: 'F' | 'J'
+    genero: 'M' | 'F'
+  }
+
+Response (200):
+  Cotizacion[]
+  [
+    {
+      aseguradora: "Aseguradora Norte",
+      numeroCotizacion: "MOCK-1234567890",
+      fechaCotizacion: "29/8/2026",
+      planes: [
+        {
+          codigoPlan: "1",
+          nombre: "Responsabilidad Civil",
+          precio: 40000,
+          vigencia: "MENSUAL"
+        },
+        ...
+      ]
+    },
+    ...
+  ]
+
+Response (500):
+  { error: "Error al obtener cotizaciones" }
+
+Problemas actuales:
+  ❌ Sin validación de datos
+  ❌ Error genérico sin detalles
+  ❌ Sin tipado de respuesta de error
+  ❌ Sin logging
+
+================================================================================
+
+services/cotizacion.service.ts - LÓGICA DE NEGOCIO
+─────────────────────────────────────────────────
+Responsabilidades:
+  - Coordinar múltiples adapters
+  - Manejar errores de forma robusta
+  - Procesar resultados
+
+Función principal:
+  obtenerCotizaciones(datos: DatosAuto): Promise<Cotizacion[]>
+
+Implementación:
+  1. Define array de adapters (3 aseguradoras mock)
+  2. Ejecuta todos en paralelo con Promise.allSettled()
+  3. Filtra solo resultados exitosos
+  4. Retorna array de cotizaciones
+
+Ventajas del allSettled():
+  - ✓ No falla si una aseguradora no responde
+  - ✓ Devuelve las que sí funcionaron
+  - ✓ Mejor UX que esperar a todas
+
+Adapters actuales:
+  1. Aseguradora Norte - precio base: 40000 ARS
+  2. Aseguradora Sur - precio base: 55000 ARS
+  3. Aseguradora Centro - precio base: 48000 ARS
+
+================================================================================
+
+adapters/types.ts - DEFINICIÓN DE INTERFAZ
+──────────────────────────────────────────
+Responsabilidades:
+  - Definir contrato que deben cumplir todos los adapters
+
+Interfaz:
+  interface QuoteAdapter {
+    cotizar(datos: DatosAuto): Promise<Cotizacion>
+  }
+
+Propósito:
+  - Permite agregar nuevos adapters sin modificar el service
+  - Cada adapter implementa su propia lógica
+  - Patrón Strategy
+
+================================================================================
+
+adapters/mock/mock.adapter.ts - ADAPTER MOCK
+────────────────────────────────────────────
+Responsabilidades:
+  - Simular llamadas a APIs de aseguradoras reales
+  - Generar datos aleatorios
+
+Función:
+  crearMockAdapter(nombreAseguradora, precioBase): QuoteAdapter
+
+Características:
+  - Genera 3 planes: RC, Terceros Completo, Todo Riesgo
+  - Precios: base, base*1.8, base*3.2
+  - Simula latencia de red (300-1000ms)
+  - Genera número de cotización con timestamp
+  - Usa fecha actual en formato es-AR
+
+Planes generados:
+  1. Responsabilidad Civil - precioBase
+  2. Terceros Completo - precioBase * 1.8
+  3. Todo Riesgo - precioBase * 3.2
+
+Vigencia:
+  - MENSUAL (hardcodeado)
+
+================================================================================
+
+types/datosAuto.ts - TIPOS DE REQUEST
+──────────────────────────────────────
+Define estructura de datos que viene del frontend:
+
+  type TipoPersona = 'F' | 'J'
+  type UsoVehiculo = 'particular' | 'comercial'
+  type Genero = 'M' | 'F'
+
+  interface DatosContacto
+  interface DatosVehiculo
+  interface DatosAuto
+
+================================================================================
+
+types/cotizacion.ts - TIPOS DE RESPONSE
+────────────────────────────────────────
+Define estructura de datos que se devuelve al frontend:
+
+  interface PlanCotizado
+  interface Cotizacion
+
+================================================================================
+FLUJO COMPLETO DE REQUEST
+================================================================================
+
+1. CLIENTE (Frontend)
+   ├─ Completa formulario
+   └─ Envía POST /cotizar con body
+
+2. SERVIDOR (Express)
+   ├─ Route handler en cotizar.routes.ts
+   ├─ Recibe request
+   ├─ Cast a DatosAuto
+   └─ Llama a obtenerCotizaciones()
+
+3. SERVICE
+   ├─ Crea array de 3 adapters
+   ├─ Ejecuta Promise.allSettled()
+   │  ├─ Adapter 1: Simula latencia, genera cotización
+   │  ├─ Adapter 2: Simula latencia, genera cotización
+   │  └─ Adapter 3: Simula latencia, genera cotización
+   ├─ Espera a todas (max ~1000ms)
+   └─ Filtra exitosas y devuelve
+
+4. RESPONSE
+   ├─ Status 200
+   └─ Body: Cotizacion[]
+
+5. CLIENTE (Frontend)
+   ├─ Recibe array de cotizaciones
+   └─ Renderiza resultados
+
+================================================================================
+PROBLEMAS IDENTIFICADOS
+================================================================================
+
+🔴 CRÍTICOS:
+  1. ❌ SIN VALIDACIÓN DE REQUEST
+     - No valida estructura de DatosAuto
+     - No valida rangos de valores
+     - No valida formatos (email, teléfono, DNI)
+     → Riesgo: Datos inválidos procesados
+
+  2. ❌ CORS MUY ABIERTO
+     - app.use(cors()) sin opciones
+     - Acepta cualquier origin
+     → Riesgo: Vulnerabilidad CSRF
+
+  3. ❌ SIN ERROR TYPING
+     - Error es string genérico
+     - No diferencia tipos de error
+     → Impacto: Frontend no sabe qué pasó
+
+🟡 IMPORTANTES:
+  1. ❌ SIN LOGGING ESTRUCTURADO
+     - Solo console.error()
+     - Difícil debuggear en producción
+
+  2. ❌ SIN VALIDACIÓN DE RESPONSE
+     - Los adapters pueden devolver datos inválidos
+     - Sin verificación de schema
+
+  3. ❌ MOCK ADAPTERS HARDCODEADOS
+     - Precios fijos
+     - No hay forma de agregar nuevos
+
+🟢 MENORES:
+  1. ✓ Variables de ambiente incompletas
+  2. ✓ Sin versionado de API (/v1/cotizar)
+
+================================================================================
+DEPENDENCIAS EXPLICADAS
+================================================================================
+
+PRODUCTION:
+  - express@5.2.1
+    Framework HTTP minimalista y flexible
+    Usado para: Definir rutas, middlewares, manejo de requests
+
+  - cors@2.8.6
+    Habilita CORS (Cross-Origin Resource Sharing)
+    Usado para: Permitir requests desde frontend en otro dominio
+
+DEVELOPMENT:
+  - typescript@7.0.2
+    Compilador TypeScript a JavaScript
+    Usado para: Type checking, compilación
+
+  - @types/express@5.0.6
+    Tipos TypeScript para Express
+    Usado para: IntelliSense, type safety
+
+  - @types/node@26.4.0
+    Tipos TypeScript para Node.js APIs
+    Usado para: console, setTimeout, etc.
+
+  - @types/cors@2.8.19
+    Tipos TypeScript para CORS
+    Usado para: Type safety en middleware
+
+  - tsx@4.23.12
+    Ejecutor de TypeScript para Node.js
+    Usado para: npm run dev (hot reload de TS)
+
+================================================================================
+CONFIGURACIÓN MONOREPO (pnpm-workspace.yaml)
+================================================================================
+
+allowBuilds:
+  esbuild: false
+
+Explicación:
+  - Define este proyecto como workspace de pnpm
+  - esbuild: false = no permitir compilación automática
+  - Permite manejar backend/ y frontend/ como paquetes
+
+================================================================================
+ENVIRONMENT VARIABLES
+================================================================================
+
+PORT
+  - Descrición: Puerto donde escucha el servidor
+  - Default: 3000
+  - Ejemplo: PORT=5000
+
+Futuras variables necesarias:
+  - LOG_LEVEL: Nivel de logging (info, debug, error)
+  - CORS_ORIGIN: Origins permitidos (ej: http://localhost:5173)
+  - NODE_ENV: Ambiente (development, production)
+
+================================================================================
+PRÓXIMAS MEJORAS RECOMENDADAS
+================================================================================
+
+ALTA PRIORIDAD:
+  1. ✓ Validación con Zod en backend
+  2. ✓ Error handling con tipos discriminados
+  3. ✓ Logger estructurado (winston o pino)
+  4. ✓ CORS configurado correctamente
+
+MEDIA PRIORIDAD:
+  5. Validación de responses de adapters
+  6. Separar tipos en archivo único
+  7. Migrations para aseguradoras reales
+  8. Rate limiting
+  9. Request timeout handling
+
+BAJA PRIORIDAD:
+  10. Versionado de API (/v1/)
+  11. Swagger/OpenAPI documentation
+  12. Health check endpoint
+  13. Métricas (Prometheus)
+
+================================================================================
+CÓMO EXTENDER CON NUEVOS ADAPTERS
+================================================================================
+
+Paso 1: Crear nuevo archivo en adapters/
+  adapters/real/seguros-argentina.adapter.ts
+
+Paso 2: Implementar la interfaz QuoteAdapter
+  export function crearSegurosArgentinaAdapter(): QuoteAdapter {
+    return {
+      async cotizar(datos: DatosAuto): Promise<Cotizacion> {
+        // Lógica: llamar a API real
+      }
+    }
+  }
+
+Paso 3: Agregar a servicio
+  // En cotizacion.service.ts
+  import { crearSegurosArgentinaAdapter } from '../adapters/real/...'
+
+  const adapters: QuoteAdapter[] = [
+    // ... existentes
+    crearSegurosArgentinaAdapter()
+  ]
+
+¡Listo! Service automáticamente lo ejecutará en paralelo.
+
+================================================================================
+Última actualización: 2026-08-29
+================================================================================

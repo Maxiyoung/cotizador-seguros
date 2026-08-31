@@ -1,0 +1,225 @@
+BACKEND DEL COTIZADOR DE SEGUROS
+
+El backend del proyecto es una API REST desarrollada en Node.js con TypeScript y Express, diseñada para recibir los datos de un vehículo y devolver cotizaciones de seguros generadas por distintas aseguradoras simuladas. Su objetivo principal es actuar como motor de negocio del cotizador, conectando el frontend con la lógica de cálculo y la estructura de resultados.
+
+1. PROPÓSITO DEL PROYECTO
+
+Este backend forma parte de una aplicación de cotización de seguros automotores. El flujo general es:
+
+- El frontend envía los datos del titular y del vehículo.
+- El backend valida y procesa esa información.
+- Se consultan múltiples fuentes de cotización (en este caso, adaptadores mock).
+- Se devuelven varias propuestas de seguros con sus respectivos planes y precios.
+
+La aplicación está pensada para un entorno de demo/prototipo, por lo que las cotizaciones no provienen de una base de datos real ni de APIs externas de aseguradoras; en cambio, se simulan con datos artificiales para representar el comportamiento de un sistema de producción.
+
+2. TECNOLOGÍA Y STACK
+
+El backend utiliza:
+
+- Node.js
+- TypeScript
+- Express
+- CORS
+- pnpm como gestor de paquetes
+- Modo ES Modules (type: "module")
+
+La configuración principal se encuentra en package.json, donde se define el script de desarrollo:
+
+- pnpm dev -> ejecuta tsx watch src/server.ts
+
+Esto permite ejecutar el servidor en modo watch para desarrollo dinámico.
+
+3. ARQUITECTURA DEL BACKEND
+
+La estructura del backend está organizada por responsabilidades:
+
+- src/app.ts: configura la aplicación Express y sus middlewares.
+- src/server.ts: levanta el servidor HTTP en el puerto indicado.
+- src/routes/cotizar.routes.ts: define la ruta de cotización.
+- src/services/cotizacion.service.ts: orquesta la obtención de cotizaciones.
+- src/adapters/: define la interfaz y los adaptadores para cada aseguradora.
+- src/types/: define los tipos de datos del negocio.
+
+4. CONFIGURACIÓN DE LA APLICACIÓN
+
+En app.ts se crea la instancia de Express, se habilita CORS y se activa la lectura de JSON:
+
+- app.use(cors())
+- app.use(express.json())
+- app.use(cotizarRouter)
+
+Esto permite que el frontend pueda consumir la API desde otro origen y enviar datos en formato JSON.
+
+5. SERVIDOR HTTP
+
+En server.ts se inicia la aplicación con:
+
+- const PORT = process.env.PORT || 3000;
+- app.listen(PORT, ...)
+
+Cuando el servidor corre, muestra en consola una URL local del tipo:
+
+http://localhost:3000
+
+6. RUTA PRINCIPAL: /cotizar
+
+La ruta está definida en cotizar.routes.ts:
+
+- Método: POST
+- Endpoint: /cotizar
+
+La lógica es simple pero clara:
+
+- recibe req.body como DatosAuto
+- llama a obtenerCotizaciones(datos)
+- devuelve el arreglo de cotizaciones como respuesta JSON
+- en caso de error, responde con un 500 y un mensaje: "Error al obtener cotizaciones"
+
+Esto hace que el frontend pueda enviar una solicitud al backend para obtener propuestas en una sola llamada.
+
+7. MODELO DE DATOS
+
+Los tipos en src/types/datosAuto.ts describen la estructura que el backend espera recibir.
+
+Se distinguen dos grandes grupos:
+
+- Datos del contacto:
+  - dni
+  - nombre
+  - email
+  - telefono
+
+- Datos del vehículo:
+  - marca
+  - modelo
+  - anio
+  - esOkm
+  - uso
+  - valorVehiculo
+  - codigoPostal
+  - provincia
+
+Además, el payload incluye:
+
+- tipoPersona: 'F' | 'J'
+- genero: 'M' | 'F'
+
+Esto permite reflejar la información usada en una cotización real de seguros automotores, incluyendo datos personales del titular y detalles del vehículo.
+
+8. MODELO DE COTIZACIÓN
+
+La respuesta del backend se define con la interfaz Cotizacion en src/types/cotizacion.ts. Cada cotización incluye:
+
+- aseguradora: nombre de la aseguradora
+- numeroCotizacion: identificador de la oferta
+- fechaCotizacion: fecha de emisión
+- planes: arreglo de planes cotizados
+
+Cada plan tiene:
+
+- codigoPlan
+- nombre
+- precio
+- vigencia
+
+Esto permite devolver varias alternativas de cobertura para un mismo vehículo, como por ejemplo:
+
+- Responsabilidad Civil
+- Terceros Completo
+- Todo Riesgo
+
+9. PATRÓN DE ADAPTADORES
+
+La interfaz QuoteAdapter se define en src/adapters/types.ts:
+
+export interface QuoteAdapter {
+  cotizar(datos: DatosAuto): Promise<Cotizacion>;
+}
+
+Este diseño permite abstraer la lógica de cotización y hacer que distintas aseguradoras tengan su propia implementación sin cambiar la estructura general de la API.
+
+10. ADAPTADORES MOCK
+
+En src/adapters/mock/mock.adapter.ts se crea una implementación simulada para varias aseguradoras. La función crearMockAdapter(nombreAseguradora, precioBase) genera un adapter con comportamiento similar al de una compañía real.
+
+Lógica del mock:
+
+- simula latencia de red con setTimeout
+- genera un número de cotización aleatorio
+- devuelve una fecha actual
+- arma una lista de planes con precios basados en precioBase
+
+Ejemplo de planes creados:
+
+- Responsabilidad Civil -> precioBase
+- Terceros Completo -> precioBase * 1.8
+- Todo Riesgo -> precioBase * 3.2
+
+Esto permite representar diferentes niveles de cobertura con precios proporcionales al valor del auto o a la base de cálculo de la aseguradora.
+
+11. SERVICIO DE COTIZACIÓN
+
+En src/services/cotizacion.service.ts se define obtenerCotizaciones(datos: DatosAuto): Promise<Cotizacion[]>.
+
+Esta función:
+
+- arma la lista de adapters disponibles
+- ejecuta todas las cotizaciones en paralelo con Promise.allSettled
+- filtra solo las respuestas exitosas
+- devuelve una colección de cotizaciones válidas
+
+La utilización de Promise.allSettled es importante porque garantiza que si una aseguradora falla, el sistema no rompe la respuesta general; simplemente ignora la cotización fallida y sigue con las demás.
+
+12. FLUJO COMPLETO DE LA APLICACIÓN
+
+El flujo completo del backend es el siguiente:
+
+1. El frontend envía un POST a /cotizar con los datos del usuario y del vehículo.
+2. La ruta recibe el body y lo castea a DatosAuto.
+3. El servicio obtenerCotizaciones llama a cada adaptador disponible.
+4. Cada adaptador mock simula la cotización de una aseguradora con demora artificial.
+5. El backend devuelve un arreglo de objetos Cotizacion.
+6. El frontend renderiza esos resultados para mostrar varias opciones de seguro.
+
+13. ESTADO ACTUAL DEL BACKEND
+
+El backend actual se encuentra en una etapa de prototipo funcional:
+
+- no tiene base de datos
+- no integra APIs reales de aseguradoras
+- no maneja autenticación ni usuarios
+- no persiste cotizaciones
+- usa datos simulados para demostrar la arquitectura y la lógica de negocio
+
+Sin embargo, la estructura está preparada para evolucionar hacia un sistema más robusto, por ejemplo agregando:
+
+- conexión con bases de datos
+- autenticación JWT
+- cálculo real de primas
+- integración con APIs externas
+- validación avanzada por librerías como Zod o Joi
+- manejo de errores más específico por dominio
+
+14. RESUMEN EJECUTIVO
+
+El backend de este proyecto es un API REST de cotización de seguros automotores construida con Express y TypeScript. Su función es aceptar datos del vehículo y del titular, consultar múltiples aseguradoras simuladas mediante adaptadores y devolver una lista de cotizaciones con planes y precios. Aunque por ahora es un sistema basado en mocks, su diseño modular y orientado a interfaces permite escalar fácilmente a una integración real con compañías de seguros o motores de cálculo más complejos.
+
+15. EJEMPLO DE RESPUESTA ESPERADA
+
+Una respuesta típica del backend podría tener este formato:
+
+[
+  {
+    "aseguradora": "Aseguradora Norte",
+    "numeroCotizacion": "MOCK-1234567890",
+    "fechaCotizacion": "30/8/2026",
+    "planes": [
+      { "codigoPlan": "1", "nombre": "Responsabilidad Civil", "precio": 40000, "vigencia": "MENSUAL" },
+      { "codigoPlan": "2", "nombre": "Terceros Completo", "precio": 72000, "vigencia": "MENSUAL" },
+      { "codigoPlan": "3", "nombre": "Todo Riesgo", "precio": 128000, "vigencia": "MENSUAL" }
+    ]
+  }
+]
+
+En conclusión, este backend cumple con la función de orquestar la obtención de cotizaciones, encapsular la lógica de negocio y facilitar la integración con el frontend de manera organizada, escalable y fácil de extender.

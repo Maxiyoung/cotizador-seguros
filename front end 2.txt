@@ -1,0 +1,354 @@
+FRONTEND DEL COTIZADOR DE SEGUROS
+
+El frontend de este proyecto es una aplicación web desarrollada en React con TypeScript y Vite. Está diseñado para ofrecer una experiencia de usuario moderna, clara y rápida para completar un formulario de cotización de seguros automotores y visualizar las propuestas recibidas desde el backend. Su objetivo principal es permitir que el usuario ingrese los datos de su vehículo y de su titular, enviar esa información al servidor, y mostrar varias opciones de seguros con sus planes y precios.
+
+1. PROPÓSITO DEL FRONTEND
+
+La interfaz está pensada para que el usuario pueda:
+
+- cargar datos del titular (DNI, nombre, email, teléfono)
+- cargar datos del vehículo (marca, modelo, año, valor, uso, provincia, código postal)
+- validar la información antes de enviar la cotización
+- recibir varias cotizaciones de diferentes aseguradoras
+- comparar planes y precios de manera visual y ordenada
+
+El frontend actúa como capa de interacción con el usuario y como cliente de la API del backend. Es una interfaz de tipo cotizador inteligente, enfocada en la comprensión rápida de la información y la presentación de resultados.
+
+2. TECNOLOGÍAS USADAS
+
+El stack principal del frontend es el siguiente:
+
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS
+- React Hook Form
+- Zod
+- @hookform/resolvers
+- ESLint
+
+Estas tecnologías permiten construir una interfaz moderna con validaciones robustas, estilos rápidos y una organización clara del código.
+
+3. SCRIPT DE ARRANQUE Y BUILDS
+
+En package.json se definen los siguientes scripts:
+
+- npm run dev -> inicia la aplicación en modo desarrollo con Vite
+- npm run build -> compila TypeScript y genera el build de producción
+- npm run lint -> revisa el código con ESLint
+- npm run preview -> permite previsualizar el build generado
+
+El comando principal para desarrollo es:
+
+- pnpm dev
+
+Esto levanta el frontend localmente, normalmente en un puerto de Vite como localhost:5173, dependiendo de la configuración del proyecto.
+
+4. ESTRUCTURA DEL PROYECTO
+
+La estructura del frontend es la siguiente:
+
+frontend/
+  src/
+    App.tsx
+    main.tsx
+    index.css
+    App.css
+    schemas.ts
+    schemas/
+      datosAuto.schema.ts
+    types/
+      cotizacion.ts
+    hooks/
+      useCotizar.ts
+    components/
+      form/
+        FormularioCotizacion.tsx
+      results/
+        ResultadosCotizacion.tsx
+    assets/
+
+Cada carpeta cumple una función específica:
+
+- src/App.tsx: componente principal que organiza la pantalla
+- src/main.tsx: punto de entrada de la aplicación
+- src/index.css: estilos globales y configuración visual base
+- src/hooks/useCotizar.ts: lógica para consumir la API
+- src/components/form/FormularioCotizacion.tsx: formulario principal
+- src/components/results/ResultadosCotizacion.tsx: panel de resultados
+- src/schemas/datosAuto.schema.ts: validación del payload con Zod
+- src/types/cotizacion.ts: tipos relacionados con la respuesta de cotización
+- src/schemas.ts: validación complementaria del formulario
+
+5. PUNTO DE ENTRADA DE LA APLICACIÓN
+
+main.tsx es el archivo inicial del frontend. Su trabajo es:
+
+- importar React y ReactDOM
+- importar el CSS principal
+- importar App desde App.tsx
+- renderizar la aplicación dentro del elemento root del HTML
+
+La lógica es la típica de React con Vite:
+
+- createRoot(document.getElementById('root')!)
+- render(<StrictMode><App /></StrictMode>)
+
+Esto asegura que la aplicación arranque correctamente y que el árbol de componentes se monte en el navegador.
+
+6. COMPONENTE PRINCIPAL: App.tsx
+
+App.tsx es la composición central de la pantalla. En él se integran los dos bloques más importantes de la interfaz:
+
+- FormularioCotizacion
+- ResultadosCotizacion
+
+Además, App.tsx usa el hook useCotizar para obtener el estado del flujo principal:
+
+- quotes: array de cotizaciones
+- loading: si la operación está en curso
+- error: mensaje de error si falla la solicitud
+- fetchCotizaciones: función que dispara el POST al backend
+
+La estructura visual general es:
+
+- un fondo claro
+- un encabezado con el título “Seguros para tu auto”
+- una grilla con dos columnas en desktop
+- a la izquierda: formulario
+- a la derecha: resultados
+
+Esto hace que la UX sea clara: el usuario completa el formulario y al costado ve la respuesta de cotización.
+
+7. HOOK DE CONEXIÓN: useCotizar.ts
+
+El hook useCotizar es el punto de conexión entre la interfaz y la API. Tiene la responsabilidad de:
+
+- manejar el estado de cotizaciones
+- manejar loading
+- manejar errores
+- enviar la solicitud POST al backend
+
+La función fetchCotizaciones recibe un objeto de formulario validado con type DatosAutoFormData.
+
+Dentro del hook ocurre lo siguiente:
+
+- setLoading(true)
+- setError('')
+- ejecuta fetch(import.meta.env.VITE_API_URL || 'http://localhost:3000/cotizar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+
+Luego:
+
+- si la respuesta no es ok, intenta leer el JSON de error
+- si todo sale bien, convierte la respuesta a un arreglo de cotizaciones
+- actualiza el estado quotes
+- finaliza con loading false
+
+Esto permite que el frontend esté completamente desacoplado de la lógica de negocio del backend y centralice toda la comunicación HTTP en un solo lugar.
+
+8. CÓMO SE CONECTA CON EL BACKEND
+
+La conexión se realiza mediante fetch a la URL base:
+
+- import.meta.env.VITE_API_URL
+- o si no existe, por defecto: http://localhost:3000/cotizar
+
+Eso significa que la app frontend espera que el backend esté corriendo en el puerto 3000. La ruta exacta es:
+
+- POST /cotizar
+
+El cuerpo de la petición es un JSON con este tipo de structure:
+
+{
+  "contacto": {
+    "dni": "40123456",
+    "nombre": "Juan Pérez",
+    "email": "juan@mail.com",
+    "telefono": "3512345678"
+  },
+  "vehiculo": {
+    "marca": "Toyota",
+    "modelo": "Corolla",
+    "anio": 2024,
+    "esOkm": false,
+    "uso": "particular",
+    "valorVehiculo": 15000000,
+    "codigoPostal": "5000",
+    "provincia": "Córdoba"
+  },
+  "tipoPersona": "F",
+  "genero": "M"
+}
+
+La respuesta esperada del backend es un arreglo de cotizaciones, cada una con:
+
+- aseguradora
+- numeroCotizacion
+- fechaCotizacion
+- planes
+
+9. FORMULARIO: FormularioCotizacion.tsx
+
+El formulario es el elemento más importante del frontend porque es la entrada principal del sistema. Está construido con React Hook Form y usa Zod como validador por medio de zodResolver.
+
+Los campos del formulario incluyen:
+
+Sección Datos del titular:
+
+- DNI
+- Nombre Completo
+- Email
+- Teléfono
+
+Sección Datos del vehículo:
+
+- Marca
+- Modelo
+- Año
+- Valor del Vehículo
+- Provincia
+- Código Postal
+
+Además, el formulario usa valores por defecto para evitar errores con campos que no se muestran explícitamente:
+
+- vehiculo.esOkm = false
+- vehiculo.uso = 'particular'
+- tipoPersona = 'F'
+- genero = 'M'
+
+Esto hace que el payload siempre llegue con cierta estructura base y evita que el backend reciba undefined en campos que no se exigen directamente en la UI.
+
+La validación se hace por campo, y los errores se muestran debajo de cada input en color rojo. Si el backend falla o la conexión se rompe, también se muestra un mensaje global de error.
+
+10. VALIDACIÓN CON ZOD
+
+El archivo schemas/datosAuto.schema.ts define la validación aplicada al formulario. Este esquema exige una estructura estricta para:
+
+- contacto
+  - dni
+  - nombre
+  - email
+  - telefono
+
+- vehiculo
+  - marca
+  - modelo
+  - anio
+  - esOkm
+  - uso
+  - valorVehiculo
+  - codigoPostal
+  - provincia
+
+- tipoPersona
+- genero
+
+Zod permite asegurar que los datos tengan el tipo correcto y que existan restricciones mínimas como:
+
+- DNI con longitud mínima
+- nombre obligatorio con mínimo de caracteres
+- email válido
+- teléfono razonable
+- año dentro de rango
+- valor del vehículo positivo
+- uso limitado a particular o comercial
+
+Esto mejora la calidad de la información que se envía al backend y evita fallos por datos mal formados.
+
+11. RESULTADOS: ResultadosCotizacion.tsx
+
+El panel de resultados toma la respuesta del backend y la presenta visualmente.
+
+Si no existen cotizaciones aún, muestra un estado vacío con un mensaje tipo:
+
+- “Aún no hay cotizaciones. Complete el formulario y presione Cotizar seguro.”
+
+Si sí existen, renderiza una card por aseguradora. Cada card muestra:
+
+- nombre de la aseguradora
+- número de cotización
+- fecha de cotización
+- lista de planes con nombre, vigencia y precio
+
+La presentación usa Tailwind para diseñar tarjetas blancas, bordes suaves, badges verdes y textos con tonos corporativos. La función formatCurrency convierte los importes a formato argentino con Intl.NumberFormat.
+
+12. TIPOS DEL FRONTEND
+
+El frontend define modelos de respuesta para manejar la estructura de una cotización. En src/types/cotizacion.ts se exportan los tipos:
+
+- CotizacionPlan
+- Cotizacion
+
+Esto ayuda a mantener la tipificación de la API y a evitar errores al renderizar resultados.
+
+13. ESTILOS Y DISEÑO
+
+El estilo principal se hace con Tailwind CSS. El proyecto usa clases como:
+
+- bg-[#F6F7F5]
+- text-[#10233D]
+- border-[#DADFE3]
+- text-[#1F6F54]
+- rounded-xl
+- shadow-sm
+
+Esto le da a la aplicación un diseño moderno y limpio, con una paleta basada en tonos verdes, grises y azules para parecer una app financiera y profesional.
+
+14. FLUJO COMPLETO DE LA APLICACIÓN
+
+El flujo de interacción del frontend es el siguiente:
+
+1. El usuario llena el formulario.
+2. React Hook Form valida el contenido con Zod.
+3. Si hay errores, se muestran al usuario.
+4. Si todo es válido, se ejecuta handleSubmit(onSubmit).
+5. onSubmit llama a fetchCotizaciones desde App.tsx.
+6. useCotizar hace el POST al backend con el JSON del formulario.
+7. El backend responde con una lista de cotizaciones.
+8. El estado quotes se actualiza.
+9. ResultadosCotizacion renderiza cada aseguradora y sus planes.
+
+15. CARACTERÍSTICAS DE LA APLICACIÓN
+
+El frontend actual es un prototipo funcional con una estructura muy clara y desacoplada:
+
+- modularidad por componentes
+- validación real de formularios
+- manejo de carga y errores
+- consumo directo de la API REST
+- diseño responsivo para escritorio y dispositivos móviles
+- separación por responsabilidades (UI, validación, tipos, API, presentación)
+
+16. PUNTOS FUERTES DEL FRONTEND
+
+Entre sus principales fortalezas están:
+
+- reutilización de componentes
+- seguridad de tipos con TypeScript
+- validación robusta con Zod
+- consumo de API centralizado en un hook
+- diseño visual coherente con Tailwind
+- arquitectura fácil de escalar
+
+17. POSIBLES MEJORAS FUTURAS
+
+Aunque hoy es un frontend funcional, se puede ampliar con:
+
+- selección de aseguradoras preferidas
+- comparación visual de planes entre aseguradoras
+- filtros por cobertura o precio
+- persistencia de cotizaciones
+- navegación entre pasos del proceso
+- conexión con más datos del backend
+- mejor manejo de estados vacíos y de carga
+- integración con login o guardado de historial
+
+18. RESUMEN EJECUTIVO
+
+El frontend del proyecto es una aplicación web moderna en React + TypeScript + Vite, creada para cotizar seguros automotores de forma rápida y amigable. Su estructura está dividida en formularios, validaciones, tipos, hooks y resultados. Toda la lógica de comunicación con el backend queda centralizada en useCotizar, mientras que la UI está organizada en componentes para mantener la aplicación escalable y mantenible. La conexión con el backend se hace mediante una solicitud POST a /cotizar, usando JSON como formato de intercambio y mostrando la respuesta en un panel de resultados claramente visualizado.
+
+En definitiva, el frontend cumple con la función de capturar información del cliente, validarla, enviarla al backend y presentar una comparación de cotizaciones de forma clara, elegante y profesional.
